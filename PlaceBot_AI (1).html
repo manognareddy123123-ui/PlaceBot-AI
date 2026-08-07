@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PlaceBot AI – Smart Placement Assistant (Groq)</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',sans-serif;min-height:100vh;background:#0a0a1a;color:#fff;overflow-x:hidden}
+.bg-anim{position:fixed;inset:0;z-index:0;background:linear-gradient(120deg,#0a0a1a 0%,#1a0a3a 25%,#0a1a3a 50%,#0a2a1a 75%,#1a1a0a 100%);background-size:400% 400%;animation:bgmove 12s ease-in-out infinite}
+@keyframes bgmove{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.orb{position:fixed;border-radius:50%;filter:blur(80px);opacity:0.18;animation:float 8s ease-in-out infinite;z-index:0}
+.orb1{width:500px;height:500px;background:#7c3aed;top:-100px;left:-100px;animation-delay:0s}
+.orb2{width:400px;height:400px;background:#06b6d4;top:40%;right:-100px;animation-delay:3s}
+.orb3{width:350px;height:350px;background:#10b981;bottom:-100px;left:30%;animation-delay:6s}
+.orb4{width:300px;height:300px;background:#f59e0b;top:20%;left:40%;animation-delay:2s}
+@keyframes float{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-30px) scale(1.05)}}
+.wrap{position:relative;z-index:1;max-width:1280px;margin:auto;padding:16px}
+header{text-align:center;padding:24px 0 16px}
+header h1{font-size:2.4rem;font-weight:800;background:linear-gradient(90deg,#a78bfa,#06b6d4,#34d399,#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-1px}
+header p{color:#94a3b8;font-size:1rem;margin-top:6px}
+.tabs{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:16px 0}
+.tab{padding:8px 20px;border-radius:24px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#cbd5e1;cursor:pointer;font-size:0.9rem;transition:all .2s}
+.tab.active,.tab:hover{background:linear-gradient(135deg,#7c3aed,#06b6d4);border-color:transparent;color:#fff;font-weight:600}
+.panel{display:none}.panel.active{display:block}
+.grid2{display:grid;grid-template-columns:320px 1fr;gap:16px}
+@media(max-width:800px){.grid2{grid-template-columns:1fr}}
+.card{background:rgba(255,255,255,0.07);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:20px}
+.card h3{font-size:1rem;font-weight:700;margin-bottom:14px;color:#e2e8f0}
+input[type=number],input[type=text],select,textarea{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-size:0.9rem;margin-bottom:10px;outline:none;transition:border .2s}
+input:focus,select:focus,textarea:focus{border-color:#7c3aed}
+select option{background:#1e1b4b;color:#fff}
+textarea{resize:vertical;min-height:80px}
+label{font-size:0.8rem;color:#94a3b8;display:block;margin-bottom:4px}
+.btn{display:block;width:100%;padding:11px;border:none;border-radius:10px;font-weight:700;font-size:0.9rem;cursor:pointer;transition:all .2s}
+.btn-primary{background:linear-gradient(135deg,#7c3aed,#06b6d4);color:#fff}
+.btn-primary:hover{opacity:0.88;transform:translateY(-1px)}
+.btn-secondary{background:linear-gradient(135deg,#059669,#0ea5e9);color:#fff;margin-top:8px}
+.btn-sm{padding:6px 14px;border-radius:8px;font-size:0.78rem;border:none;cursor:pointer;font-weight:600}
+.company-item{display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.06);border-radius:10px;padding:10px 14px;margin-bottom:8px;border:1px solid rgba(255,255,255,0.08)}
+.company-item .name{font-weight:600;font-size:0.9rem}
+.company-item .pkg{font-size:0.8rem;color:#34d399}
+.tag{display:inline-block;font-size:0.7rem;padding:2px 8px;border-radius:6px;font-weight:600;margin-left:6px}
+.tag-it{background:rgba(124,58,237,0.3);color:#c4b5fd}
+.tag-mass{background:rgba(6,182,212,0.3);color:#67e8f9}
+.tag-dream{background:rgba(245,158,11,0.3);color:#fcd34d}
+.chatbox{height:400px;overflow-y:auto;background:rgba(0,0,0,0.3);border-radius:14px;padding:14px;margin-bottom:12px;scroll-behavior:smooth}
+.chatbox::-webkit-scrollbar{width:4px}.chatbox::-webkit-scrollbar-thumb{background:#7c3aed;border-radius:4px}
+.msg{margin-bottom:12px;display:flex;flex-direction:column}
+.msg.user{align-items:flex-end}.msg.bot{align-items:flex-start}
+.bubble{max-width:82%;padding:10px 14px;border-radius:14px;font-size:0.88rem;line-height:1.55}
+.bubble.user{background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;border-bottom-right-radius:4px}
+.bubble.bot{background:rgba(255,255,255,0.1);color:#e2e8f0;border-bottom-left-radius:4px;border:1px solid rgba(255,255,255,0.08)}
+.bubble.bot.thinking{color:#94a3b8;font-style:italic}
+.chat-input-row{display:flex;gap:8px}
+.chat-input-row input{flex:1;margin:0;border-radius:12px}
+.chat-input-row button{width:auto;padding:10px 20px;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#06b6d4);border:none;color:#fff;font-weight:700;cursor:pointer;white-space:nowrap;font-size:0.85rem}
+.quick-btns{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.quick-btn{padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.06);color:#cbd5e1;font-size:0.75rem;cursor:pointer;transition:all .15s}
+.quick-btn:hover{background:rgba(124,58,237,0.3);border-color:#7c3aed;color:#fff}
+.stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.stat-box{background:rgba(255,255,255,0.06);border-radius:12px;padding:14px;text-align:center;border:1px solid rgba(255,255,255,0.08)}
+.stat-box .num{font-size:1.5rem;font-weight:800;background:linear-gradient(90deg,#a78bfa,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-box .lbl{font-size:0.72rem;color:#94a3b8;margin-top:2px}
+canvas{border-radius:12px;background:rgba(0,0,0,0.3)!important}
+.resume-form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){.resume-form{grid-template-columns:1fr}}
+.resume-form .full{grid-column:1/-1}
+.resume-output{background:rgba(0,0,0,0.35);border-radius:14px;padding:18px;font-size:0.85rem;line-height:1.7;color:#e2e8f0;white-space:pre-wrap;min-height:120px;border:1px solid rgba(255,255,255,0.08)}
+.quiz-card{background:rgba(255,255,255,0.06);border-radius:16px;padding:22px;border:1px solid rgba(255,255,255,0.1)}
+.quiz-q{font-size:1rem;font-weight:600;margin-bottom:16px;color:#e2e8f0;line-height:1.5}
+.quiz-opts{display:grid;gap:8px}
+.quiz-opt{padding:10px 16px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:#cbd5e1;cursor:pointer;font-size:0.88rem;transition:all .15s;text-align:left}
+.quiz-opt:hover:not(.disabled){border-color:#7c3aed;background:rgba(124,58,237,0.15);color:#fff}
+.quiz-opt.correct{border-color:#10b981;background:rgba(16,185,129,0.2);color:#6ee7b7}
+.quiz-opt.wrong{border-color:#ef4444;background:rgba(239,68,68,0.2);color:#fca5a5}
+.quiz-opt.disabled{cursor:default}
+.quiz-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.quiz-score{font-size:0.88rem;color:#94a3b8}.quiz-topic{font-size:0.8rem;color:#a78bfa;background:rgba(124,58,237,0.2);padding:3px 10px;border-radius:8px}
+.exp-box{margin-top:12px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.05);font-size:0.83rem;color:#94a3b8;line-height:1.6;border-left:3px solid #7c3aed;display:none}
+.progress-bar{height:6px;border-radius:4px;background:rgba(255,255,255,0.1);margin-bottom:16px;overflow:hidden}
+.progress-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#7c3aed,#06b6d4);transition:width .4s}
+.roadmap-step{display:flex;gap:14px;align-items:flex-start;padding:14px;border-radius:12px;background:rgba(255,255,255,0.05);margin-bottom:10px;border:1px solid rgba(255,255,255,0.07)}
+.roadmap-num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.85rem;flex-shrink:0}
+.roadmap-step:nth-child(1) .roadmap-num{background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff}
+.roadmap-step:nth-child(2) .roadmap-num{background:linear-gradient(135deg,#06b6d4,#0ea5e9);color:#fff}
+.roadmap-step:nth-child(3) .roadmap-num{background:linear-gradient(135deg,#10b981,#059669);color:#fff}
+.roadmap-step:nth-child(4) .roadmap-num{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff}
+.roadmap-step:nth-child(5) .roadmap-num{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff}
+.roadmap-step:nth-child(6) .roadmap-num{background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff}
+.roadmap-txt h4{font-size:0.9rem;font-weight:700;color:#e2e8f0;margin-bottom:3px}
+.roadmap-txt p{font-size:0.8rem;color:#94a3b8;line-height:1.5}
+.badge-eligible{background:rgba(16,185,129,0.2);color:#6ee7b7;border:1px solid rgba(16,185,129,0.3);border-radius:6px;font-size:0.7rem;padding:2px 7px;margin-left:6px;font-weight:600}
+.api-banner{background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:14px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.api-banner.connected{background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.3)}
+.api-banner p{font-size:0.82rem;color:#fcd34d;margin:0;flex:1;min-width:200px}
+.api-banner.connected p{color:#6ee7b7}
+.api-banner input{flex:2;min-width:200px;margin:0;font-size:0.82rem;padding:8px 12px}
+.api-banner button{width:auto;padding:8px 16px;font-size:0.82rem;border-radius:8px;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;color:#fff;font-weight:700;cursor:pointer;white-space:nowrap}
+.api-banner.connected button{background:linear-gradient(135deg,#10b981,#059669)}
+.groq-badge{font-size:0.7rem;color:#34d399;font-weight:400;margin-left:6px}
+.model-tag{font-size:0.68rem;background:rgba(245,158,11,0.2);color:#fcd34d;padding:2px 7px;border-radius:6px;margin-left:6px;font-weight:600}
+</style>
+</head>
+<body>
+<div class="bg-anim"></div>
+<div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div><div class="orb orb4"></div>
+
+<div class="wrap">
+<header>
+  <h1>🎓 PlaceBot AI</h1>
+  <p>Your intelligent placement companion — powered by Groq AI <span class="model-tag">llama-3.3-70b</span></p>
+</header>
+
+<div class="api-banner" id="api-banner">
+  <p id="api-banner-msg">⚡ Paste your free <strong>Groq API key</strong> to power all AI features. Get one free at <a href="https://console.groq.com/keys" style="color:#f59e0b" target="_blank">console.groq.com</a> — takes 30 seconds!</p>
+  <input type="password" id="groq-key-input" placeholder="gsk_xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+  <button onclick="saveGroqKey()">Connect ↗</button>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('chat')">💬 AI Chat</div>
+  <div class="tab" onclick="switchTab('eligibility')">🏢 Eligibility Checker</div>
+  <div class="tab" onclick="switchTab('resume')">📄 Resume Builder</div>
+  <div class="tab" onclick="switchTab('quiz')">🧠 Quiz Prep</div>
+  <div class="tab" onclick="switchTab('roadmap')">🗺️ Roadmap</div>
+  <div class="tab" onclick="switchTab('analytics')">📊 Analytics</div>
+</div>
+
+<!-- CHAT PANEL -->
+<div id="panel-chat" class="panel active">
+<div class="grid2">
+<div>
+  <div class="card">
+    <h3>Quick Topics</h3>
+    <div class="quick-btns" id="quick-btns">
+      <div class="quick-btn" onclick="askQuick('How do I prepare for TCS NQT?')">TCS NQT</div>
+      <div class="quick-btn" onclick="askQuick('What is the Amazon interview process?')">Amazon Prep</div>
+      <div class="quick-btn" onclick="askQuick('Give me DSA learning roadmap')">DSA Roadmap</div>
+      <div class="quick-btn" onclick="askQuick('How to crack Infosys InfyTQ?')">Infosys InfyTQ</div>
+      <div class="quick-btn" onclick="askQuick('How to write a strong resume for fresher?')">Resume Tips</div>
+      <div class="quick-btn" onclick="askQuick('What aptitude topics should I focus on?')">Aptitude</div>
+      <div class="quick-btn" onclick="askQuick('How to answer HR interview questions?')">HR Rounds</div>
+      <div class="quick-btn" onclick="askQuick('Best projects for CSE students?')">Projects</div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <h3>PlaceBot Stats</h3>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="num">150+</div><div class="lbl">Companies</div></div>
+      <div class="stat-box"><div class="num">2500</div><div class="lbl">Students</div></div>
+      <div class="stat-box"><div class="num">85%</div><div class="lbl">Placement Rate</div></div>
+      <div class="stat-box"><div class="num">500+</div><div class="lbl">Job Roles</div></div>
+    </div>
+  </div>
+</div>
+<div>
+  <div class="card">
+    <h3>🤖 Chat with PlaceBot AI <span class="groq-badge">Groq-powered</span><span class="model-tag">llama-3.3-70b</span></h3>
+    <div class="chatbox" id="chatbox">
+      <div class="msg bot"><div class="bubble bot">👋 Hi! I'm <strong>PlaceBot AI</strong>, your smart placement assistant powered by <strong>Groq + LLaMA 3.3</strong> — ultra-fast and free!<br><br>Add your Groq API key above, then ask me anything — company prep, DSA, resume tips, aptitude, HR questions, career roadmaps and more!</div></div>
+    </div>
+    <div class="chat-input-row">
+      <input type="text" id="chat-input" placeholder="Ask about placements, companies, skills..." onkeydown="if(event.key==='Enter')sendChat()">
+      <button onclick="sendChat()">Send ↗</button>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ELIGIBILITY PANEL -->
+<div id="panel-eligibility" class="panel">
+<div class="grid2">
+<div>
+  <div class="card">
+    <h3>Your Profile</h3>
+    <label>CGPA (out of 10)</label>
+    <input type="number" id="cgpa" step="0.1" min="0" max="10" placeholder="e.g. 7.5">
+    <label>Branch</label>
+    <select id="branch">
+      <option>CSE</option><option>ISE</option><option>ECE</option>
+      <option>EEE</option><option>MECH</option><option>CIVIL</option><option>MBA</option>
+    </select>
+    <label>Year of Graduation</label>
+    <select id="grad-year">
+      <option>2025</option><option>2026</option><option>2027</option>
+    </select>
+    <label>Backlogs</label>
+    <select id="backlogs">
+      <option value="0">No Backlogs</option>
+      <option value="1">Active Backlogs</option>
+    </select>
+    <button class="btn btn-primary" onclick="checkEligibility()">Check Eligibility</button>
+  </div>
+</div>
+<div>
+  <div class="card">
+    <h3>Eligible Companies</h3>
+    <div id="eligible-list"><p style="color:#64748b;font-size:0.88rem">Fill your profile and click "Check Eligibility" to see results.</p></div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- RESUME BUILDER PANEL -->
+<div id="panel-resume" class="panel">
+<div class="card">
+  <h3>📄 AI Resume Builder <span class="groq-badge">Groq-powered</span><span class="model-tag">llama-3.3-70b</span></h3>
+  <div class="resume-form">
+    <div><label>Full Name</label><input type="text" id="r-name" placeholder="Your Name"></div>
+    <div><label>Email</label><input type="text" id="r-email" placeholder="email@example.com"></div>
+    <div><label>Phone</label><input type="text" id="r-phone" placeholder="+91 XXXXXXXXXX"></div>
+    <div><label>Branch & Year</label><input type="text" id="r-branch" placeholder="CSE, 2026"></div>
+    <div><label>CGPA</label><input type="text" id="r-cgpa" placeholder="8.2"></div>
+    <div><label>College</label><input type="text" id="r-college" placeholder="Your College Name"></div>
+    <div class="full"><label>Skills (comma separated)</label><input type="text" id="r-skills" placeholder="Python, Java, SQL, React, DSA"></div>
+    <div class="full"><label>Projects (briefly describe)</label><textarea id="r-projects" placeholder="1. E-commerce website using React & Node.js&#10;2. ML-based spam classifier using Python"></textarea></div>
+    <div class="full"><label>Internships/Experience</label><textarea id="r-intern" placeholder="Intern at XYZ Corp, June 2024 – worked on backend APIs"></textarea></div>
+    <div class="full"><label>Achievements/Certifications</label><textarea id="r-achieve" placeholder="AWS Certified, 3rd in college hackathon"></textarea></div>
+  </div>
+  <button class="btn btn-primary" style="margin-top:12px" onclick="buildResume()">✨ Generate Resume with AI</button>
+  <div id="resume-loading" style="display:none;text-align:center;color:#94a3b8;padding:16px;font-size:0.88rem">✍️ PlaceBot AI is crafting your resume...</div>
+  <div id="resume-output" class="resume-output" style="margin-top:16px;display:none"></div>
+  <button class="btn btn-secondary" id="resume-copy-btn" style="display:none;margin-top:10px" onclick="copyResume()">📋 Copy Resume Text</button>
+</div>
+</div>
+
+<!-- QUIZ PANEL -->
+<div id="panel-quiz" class="panel">
+<div class="grid2">
+<div>
+  <div class="card">
+    <h3>Quiz Settings</h3>
+    <label>Topic</label>
+    <select id="quiz-topic">
+      <option value="DSA">Data Structures & Algorithms</option>
+      <option value="Aptitude">Quantitative Aptitude</option>
+      <option value="DBMS">Database Management (DBMS)</option>
+      <option value="OS">Operating Systems</option>
+      <option value="CN">Computer Networks</option>
+      <option value="OOP">Object-Oriented Programming</option>
+      <option value="HR">HR Interview Questions</option>
+      <option value="Reasoning">Logical Reasoning</option>
+    </select>
+    <label>Difficulty</label>
+    <select id="quiz-diff">
+      <option value="Easy">Easy</option>
+      <option value="Medium" selected>Medium</option>
+      <option value="Hard">Hard</option>
+    </select>
+    <button class="btn btn-primary" onclick="loadQuiz()">🎯 Start Quiz</button>
+    <div style="margin-top:14px;padding:12px;background:rgba(255,255,255,0.05);border-radius:10px">
+      <div style="font-size:0.8rem;color:#94a3b8;margin-bottom:6px">Session Score</div>
+      <div style="font-size:1.6rem;font-weight:800;color:#34d399" id="score-display">0 / 0</div>
+    </div>
+  </div>
+</div>
+<div>
+  <div class="card">
+    <div id="quiz-area"><p style="color:#64748b;font-size:0.88rem">Select a topic and click "Start Quiz" to begin your practice session.</p></div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ROADMAP PANEL -->
+<div id="panel-roadmap" class="panel">
+<div class="grid2">
+<div>
+  <div class="card">
+    <h3>🗺️ Placement Roadmap</h3>
+    <div class="roadmap-step"><div class="roadmap-num">1</div><div class="roadmap-txt"><h4>Master DSA Fundamentals</h4><p>Arrays, Strings, Linked Lists, Stacks, Queues, Trees, Graphs, DP. Practice on LeetCode & GeeksforGeeks daily.</p></div></div>
+    <div class="roadmap-step"><div class="roadmap-num">2</div><div class="roadmap-txt"><h4>CS Core Subjects</h4><p>DBMS, OS, CN, OOPs. Focus on concepts, not just theory — interviewers ask application-based questions.</p></div></div>
+    <div class="roadmap-step"><div class="roadmap-num">3</div><div class="roadmap-txt"><h4>Build Strong Projects</h4><p>2-3 full-stack or ML projects on GitHub. Add READMEs, deploy them. Real code impresses recruiters.</p></div></div>
+    <div class="roadmap-step"><div class="roadmap-num">4</div><div class="roadmap-txt"><h4>Polish Your Resume</h4><p>One page, ATS-friendly, quantify achievements. Use PlaceBot's Resume Builder for AI-generated content.</p></div></div>
+    <div class="roadmap-step"><div class="roadmap-num">5</div><div class="roadmap-txt"><h4>Aptitude & Reasoning</h4><p>Practice 30 mins daily. Focus on Quant, Verbal, Logical Reasoning. IndiaBix, PrepInsta are good resources.</p></div></div>
+    <div class="roadmap-step"><div class="roadmap-num">6</div><div class="roadmap-txt"><h4>Mock Interviews</h4><p>Do mock HR & technical interviews. Record yourself. Practice STAR method for behavioral questions.</p></div></div>
+  </div>
+</div>
+<div>
+  <div class="card">
+    <h3>Ask AI for Personalized Roadmap</h3>
+    <label>Your Branch</label>
+    <select id="rm-branch"><option>CSE</option><option>ISE</option><option>ECE</option><option>EEE</option><option>MECH</option></select>
+    <label>Target Company Type</label>
+    <select id="rm-target">
+      <option value="service">Service Companies (TCS, Infosys, Wipro)</option>
+      <option value="product">Product Companies (Amazon, Google, Microsoft)</option>
+      <option value="startup">Startups & Mid-tier</option>
+      <option value="core">Core/Domain Companies</option>
+    </select>
+    <label>Months Available</label>
+    <select id="rm-months">
+      <option value="3">3 months</option>
+      <option value="6">6 months</option>
+      <option value="12">12 months</option>
+    </select>
+    <button class="btn btn-primary" onclick="getPersonalizedRoadmap()">🚀 Get My Roadmap</button>
+    <div id="rm-loading" style="display:none;text-align:center;color:#94a3b8;padding:16px;font-size:0.88rem">🤖 PlaceBot AI is building your roadmap...</div>
+    <div id="rm-output" class="resume-output" style="display:none;margin-top:12px"></div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ANALYTICS PANEL -->
+<div id="panel-analytics" class="panel">
+<div class="grid2">
+<div>
+  <div class="card">
+    <h3>Hiring Trends 2024–25</h3>
+    <canvas id="chart-hiring"></canvas>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <h3>Package Distribution</h3>
+    <canvas id="chart-pkg"></canvas>
+  </div>
+</div>
+<div>
+  <div class="card">
+    <h3>Branch-wise Placement %</h3>
+    <canvas id="chart-branch"></canvas>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <h3>Top Skills in Demand</h3>
+    <canvas id="chart-skills"></canvas>
+  </div>
+</div>
+</div>
+</div>
+
+</div><!-- end wrap -->
+
+<script>
+const COMPANIES=[
+  {name:"TCS",cgpa:6.0,pkg:"3.5 LPA",type:"mass",branches:["CSE","ISE","ECE","EEE","MECH","CIVIL","MBA"],noBacklog:false},
+  {name:"Infosys",cgpa:6.0,pkg:"4 LPA",type:"mass",branches:["CSE","ISE","ECE","EEE","MECH","CIVIL"],noBacklog:false},
+  {name:"Wipro",cgpa:6.0,pkg:"4.5 LPA",type:"mass",branches:["CSE","ISE","ECE","EEE","MECH"],noBacklog:false},
+  {name:"Capgemini",cgpa:6.0,pkg:"4.2 LPA",type:"mass",branches:["CSE","ISE","ECE","EEE"],noBacklog:false},
+  {name:"Cognizant",cgpa:6.0,pkg:"4.5 LPA",type:"mass",branches:["CSE","ISE","ECE","EEE","MECH"],noBacklog:false},
+  {name:"HCL",cgpa:6.0,pkg:"4 LPA",type:"mass",branches:["CSE","ISE","ECE","EEE","MECH"],noBacklog:false},
+  {name:"Tech Mahindra",cgpa:6.0,pkg:"3.8 LPA",type:"mass",branches:["CSE","ISE","ECE","EEE"],noBacklog:false},
+  {name:"Mphasis",cgpa:6.5,pkg:"5 LPA",type:"mass",branches:["CSE","ISE","ECE"],noBacklog:false},
+  {name:"Accenture",cgpa:6.5,pkg:"4.8 LPA",type:"mass",branches:["CSE","ISE","ECE","EEE","MECH"],noBacklog:false},
+  {name:"LTIMindtree",cgpa:7.0,pkg:"6 LPA",type:"it",branches:["CSE","ISE","ECE"],noBacklog:true},
+  {name:"Deloitte",cgpa:7.0,pkg:"7 LPA",type:"it",branches:["CSE","ISE","ECE","EEE"],noBacklog:true},
+  {name:"IBM",cgpa:7.0,pkg:"6.5 LPA",type:"it",branches:["CSE","ISE","ECE"],noBacklog:true},
+  {name:"Zoho",cgpa:7.0,pkg:"7 LPA",type:"it",branches:["CSE","ISE"],noBacklog:true},
+  {name:"Publicis Sapient",cgpa:7.5,pkg:"8 LPA",type:"it",branches:["CSE","ISE","ECE"],noBacklog:true},
+  {name:"Oracle",cgpa:7.5,pkg:"8 LPA",type:"dream",branches:["CSE","ISE"],noBacklog:true},
+  {name:"Flipkart",cgpa:7.5,pkg:"14 LPA",type:"dream",branches:["CSE","ISE"],noBacklog:true},
+  {name:"Walmart",cgpa:7.5,pkg:"10 LPA",type:"dream",branches:["CSE","ISE"],noBacklog:true},
+  {name:"Goldman Sachs",cgpa:8.0,pkg:"15 LPA",type:"dream",branches:["CSE","ISE","ECE"],noBacklog:true},
+  {name:"Amazon",cgpa:8.0,pkg:"18 LPA",type:"dream",branches:["CSE","ISE"],noBacklog:true},
+  {name:"Adobe",cgpa:8.0,pkg:"20 LPA",type:"dream",branches:["CSE","ISE"],noBacklog:true},
+  {name:"Microsoft",cgpa:8.5,pkg:"20+ LPA",type:"dream",branches:["CSE","ISE"],noBacklog:true},
+  {name:"Google",cgpa:8.5,pkg:"25+ LPA",type:"dream",branches:["CSE","ISE"],noBacklog:true},
+];
+
+let chatHistory=[];
+let quizScore=0,quizTotal=0;
+let currentQuiz=null;
+
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    const panels=['chat','eligibility','resume','quiz','roadmap','analytics'];
+    t.classList.toggle('active',panels[i]===name);
+  });
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  if(name==='analytics') setTimeout(renderCharts,100);
+}
+
+function checkEligibility(){
+  const cgpa=parseFloat(document.getElementById('cgpa').value)||0;
+  const branch=document.getElementById('branch').value;
+  const backlogs=parseInt(document.getElementById('backlogs').value);
+  if(!cgpa||cgpa<1||cgpa>10){
+    document.getElementById('eligible-list').innerHTML='<p style="color:#f87171">Please enter a valid CGPA between 1 and 10.</p>';return;
+  }
+  const eligible=COMPANIES.filter(c=>{
+    const cgpaOk=cgpa>=c.cgpa;
+    const branchOk=c.branches.includes(branch);
+    const backlogOk=!c.noBacklog||backlogs===0;
+    return cgpaOk&&branchOk&&backlogOk;
+  });
+  const notEligible=COMPANIES.filter(c=>{
+    const branchOk=c.branches.includes(branch);
+    return branchOk&&cgpa<c.cgpa;
+  });
+  let html=`<p style="color:#94a3b8;font-size:0.78rem;margin-bottom:10px">Showing results for CGPA <strong style="color:#e2e8f0">${cgpa}</strong>, Branch <strong style="color:#e2e8f0">${branch}</strong></p>`;
+  if(eligible.length===0){html+='<p style="color:#f87171">No eligible companies found. Work on improving your CGPA!</p>';}
+  else{
+    html+=`<p style="color:#34d399;font-size:0.82rem;margin-bottom:10px">✅ ${eligible.length} eligible compan${eligible.length>1?'ies':'y'}</p>`;
+    eligible.forEach(c=>{
+      const typeLabel=c.type==='mass'?'Mass Recruiter':c.type==='dream'?'Dream Company':'IT/Mid-tier';
+      const tagClass=c.type==='mass'?'tag-mass':c.type==='dream'?'tag-dream':'tag-it';
+      html+=`<div class="company-item"><div><span class="name">${c.name}</span><span class="tag ${tagClass}">${typeLabel}</span></div><span class="pkg">${c.pkg}</span></div>`;
+    });
+    if(notEligible.length>0){
+      html+=`<p style="color:#f59e0b;font-size:0.82rem;margin-top:14px;margin-bottom:8px">⚠️ Not yet eligible (improve CGPA)</p>`;
+      notEligible.slice(0,5).forEach(c=>{
+        html+=`<div class="company-item" style="opacity:0.5"><div><span class="name">${c.name}</span><span style="font-size:0.75rem;color:#94a3b8;margin-left:8px">Need ${c.cgpa}+</span></div><span class="pkg">${c.pkg}</span></div>`;
+      });
+    }
+  }
+  document.getElementById('eligible-list').innerHTML=html;
+}
+
+let GROQ_KEY = localStorage.getItem('placebot_groq_key') || '';
+
+function saveGroqKey(){
+  const k = document.getElementById('groq-key-input').value.trim();
+  if(!k || !k.startsWith('gsk_')){
+    alert('Please enter a valid Groq API key starting with gsk_');return;
+  }
+  GROQ_KEY = k;
+  localStorage.setItem('placebot_groq_key', k);
+  updateBannerState(true);
+}
+
+function updateBannerState(connected){
+  const banner = document.getElementById('api-banner');
+  const msg = document.getElementById('api-banner-msg');
+  if(connected){
+    banner.classList.add('connected');
+    msg.innerHTML = '✅ <strong>Groq connected!</strong> Using llama-3.3-70b — blazing fast & free. <span style="color:#94a3b8;font-size:0.78rem">Key saved locally.</span>';
+    document.getElementById('groq-key-input').value = '••••••••••••••••••••';
+  } else {
+    banner.classList.remove('connected');
+  }
+}
+
+if(GROQ_KEY) updateBannerState(true);
+
+async function callGroq(systemPrompt, userMessage, history=[]){
+  if(!GROQ_KEY){
+    throw new Error('Please add your Groq API key in the banner above to use AI features.');
+  }
+  const messages=[...history, {role:'user', content:userMessage}];
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'Authorization':'Bearer '+GROQ_KEY
+    },
+    body:JSON.stringify({
+      model:'llama-3.3-70b-versatile',
+      max_tokens:1024,
+      temperature:0.7,
+      messages:[
+        {role:'system', content:systemPrompt},
+        ...messages
+      ]
+    })
+  });
+  const data = await res.json();
+  if(data.error) throw new Error(data.error.message || 'Groq API error');
+  return data.choices[0].message.content;
+}
+
+const CHAT_SYSTEM=`You are PlaceBot AI, a smart and friendly college placement assistant for Indian engineering students. You help with:
+- Company-specific preparation (TCS, Infosys, Wipro, Accenture, Amazon, Google, Microsoft, Deloitte, etc.)
+- DSA, DBMS, OS, CN, OOPs concepts
+- Resume tips and ATS optimization
+- Aptitude and logical reasoning
+- HR interview questions and STAR method
+- Career roadmaps and skill building
+- CGPA eligibility and package information
+
+Keep answers concise but detailed (4-8 sentences). Use bullet points when listing steps. Be encouraging and practical. Always give actionable advice. For company prep, mention specific topics, rounds, and timelines. Avoid generic answers.`;
+
+async function sendChat(){
+  const input=document.getElementById('chat-input');
+  const q=input.value.trim();
+  if(!q)return;
+  input.value='';
+  appendMsg(q,'user');
+  const thinking=appendMsg('PlaceBot is thinking...','bot thinking');
+  chatHistory.push({role:'user',content:q});
+  try{
+    const ans=await callGroq(CHAT_SYSTEM,q,chatHistory.slice(-8,-1));
+    thinking.querySelector('.bubble').textContent=ans;
+    thinking.querySelector('.bubble').classList.remove('thinking');
+    chatHistory.push({role:'assistant',content:ans});
+  }catch(e){
+    thinking.querySelector('.bubble').textContent = e.message.includes('API key') ? e.message : 'Could not connect to Groq. Check your API key or try again.';
+    thinking.querySelector('.bubble').classList.remove('thinking');
+  }
+}
+
+function askQuick(q){document.getElementById('chat-input').value=q;sendChat();}
+
+function appendMsg(text,type){
+  const box=document.getElementById('chatbox');
+  const div=document.createElement('div');
+  div.className='msg '+(type.includes('user')?'user':'bot');
+  div.innerHTML=`<div class="bubble ${type.includes('user')?'user':'bot'+(type.includes('thinking')?' thinking':'')}">${text}</div>`;
+  box.appendChild(div);
+  box.scrollTop=box.scrollHeight;
+  return div;
+}
+
+async function buildResume(){
+  const fields={name:document.getElementById('r-name').value,email:document.getElementById('r-email').value,phone:document.getElementById('r-phone').value,branch:document.getElementById('r-branch').value,cgpa:document.getElementById('r-cgpa').value,college:document.getElementById('r-college').value,skills:document.getElementById('r-skills').value,projects:document.getElementById('r-projects').value,intern:document.getElementById('r-intern').value,achieve:document.getElementById('r-achieve').value};
+  if(!fields.name||!fields.skills){alert('Please fill at least your name and skills.');return;}
+  document.getElementById('resume-loading').style.display='block';
+  document.getElementById('resume-output').style.display='none';
+  document.getElementById('resume-copy-btn').style.display='none';
+  const prompt=`Generate a clean, professional, ATS-friendly resume in plain text format for this student:
+Name: ${fields.name}
+Email: ${fields.email} | Phone: ${fields.phone}
+Branch & Year: ${fields.branch} | College: ${fields.college} | CGPA: ${fields.cgpa}
+Skills: ${fields.skills}
+Projects: ${fields.projects}
+Internships/Experience: ${fields.intern}
+Achievements/Certifications: ${fields.achieve}
+
+Format it as a real resume with sections: Contact Info, Education, Skills, Projects, Experience/Internships, Achievements. Use action verbs, quantify where possible, keep it concise and impactful. Use plain text with clear section headers using dashes. Do not add fabricated information.`;
+  try{
+    const res=await callGroq('You are an expert resume writer specializing in Indian tech placement resumes. Create clean, ATS-optimized resumes in plain text with clear formatting using dashes and proper alignment. Use strong action verbs.',prompt);
+    document.getElementById('resume-loading').style.display='none';
+    document.getElementById('resume-output').style.display='block';
+    document.getElementById('resume-output').textContent=res;
+    document.getElementById('resume-copy-btn').style.display='block';
+  }catch(e){
+    document.getElementById('resume-loading').style.display='none';
+    document.getElementById('resume-output').style.display='block';
+    document.getElementById('resume-output').textContent='Could not generate resume. Please check your connection and try again.';
+  }
+}
+
+function copyResume(){
+  navigator.clipboard.writeText(document.getElementById('resume-output').textContent);
+  const btn=document.getElementById('resume-copy-btn');
+  btn.textContent='✅ Copied!';setTimeout(()=>btn.textContent='📋 Copy Resume Text',2000);
+}
+
+async function loadQuiz(){
+  const topic=document.getElementById('quiz-topic').value;
+  const diff=document.getElementById('quiz-diff').value;
+  document.getElementById('quiz-area').innerHTML='<p style="color:#94a3b8;font-size:0.88rem;padding:20px;text-align:center">🤖 Generating quiz question...</p>';
+  const prompt=`Generate exactly 1 multiple-choice quiz question for a placement exam preparation on the topic "${topic}" at "${diff}" difficulty level.
+
+Return ONLY a valid JSON object (no markdown, no explanation) in this exact format:
+{"question":"The question text here","options":["Option A","Option B","Option C","Option D"],"correct":0,"explanation":"Brief explanation of why the answer is correct (2-3 sentences)"}
+
+The "correct" field should be the 0-based index of the correct option. Make sure the question is practical and commonly asked in placement interviews/tests.`;
+  try{
+    const raw=await callGroq('You are a placement exam question generator. Return ONLY valid JSON, no markdown backticks, no explanation text outside JSON.',prompt);
+    const clean=raw.replace(/```json|```/g,'').trim();
+    currentQuiz=JSON.parse(clean);
+    renderQuiz(topic);
+  }catch(e){
+    document.getElementById('quiz-area').innerHTML='<p style="color:#f87171">Could not load quiz. Please try again.</p>';
+  }
+}
+
+function renderQuiz(topic){
+  if(!currentQuiz)return;
+  let html=`<div class="quiz-card">
+  <div class="quiz-meta"><span class="quiz-score">Score: ${quizScore}/${quizTotal}</span><span class="quiz-topic">${topic}</span></div>
+  <div class="quiz-q">${currentQuiz.question}</div>
+  <div class="quiz-opts">`;
+  currentQuiz.options.forEach((opt,i)=>{
+    html+=`<button class="quiz-opt" id="opt-${i}" onclick="selectOpt(${i})">${String.fromCharCode(65+i)}. ${opt}</button>`;
+  });
+  html+=`</div><div class="exp-box" id="exp-box">${currentQuiz.explanation}</div>
+  <button class="btn btn-primary" id="next-btn" style="display:none;margin-top:14px" onclick="loadQuiz()">Next Question ↗</button>
+  </div>`;
+  document.getElementById('quiz-area').innerHTML=html;
+  document.getElementById('score-display').textContent=`${quizScore} / ${quizTotal}`;
+}
+
+function selectOpt(idx){
+  if(!currentQuiz)return;
+  quizTotal++;
+  const correct=currentQuiz.correct;
+  document.querySelectorAll('.quiz-opt').forEach(b=>b.classList.add('disabled'));
+  document.getElementById('opt-'+idx).classList.add(idx===correct?'correct':'wrong');
+  if(idx!==correct) document.getElementById('opt-'+correct).classList.add('correct');
+  if(idx===correct) quizScore++;
+  const exp=document.getElementById('exp-box');
+  exp.style.display='block';
+  document.getElementById('next-btn').style.display='block';
+  document.getElementById('score-display').textContent=`${quizScore} / ${quizTotal}`;
+}
+
+async function getPersonalizedRoadmap(){
+  const branch=document.getElementById('rm-branch').value;
+  const target=document.getElementById('rm-target').value;
+  const months=document.getElementById('rm-months').value;
+  document.getElementById('rm-loading').style.display='block';
+  document.getElementById('rm-output').style.display='none';
+  const prompt=`Create a personalized placement preparation roadmap for:
+Branch: ${branch}
+Target: ${target}
+Time Available: ${months} months
+
+Give a week-by-week or month-by-month structured plan with specific topics, resources, and milestones. Be practical and detailed. Include what to study, how much time to spend, and what to prioritize.`;
+  try{
+    const res=await callGroq('You are a placement coaching expert for Indian engineering students. Create detailed, actionable roadmaps.',prompt);
+    document.getElementById('rm-loading').style.display='none';
+    document.getElementById('rm-output').style.display='block';
+    document.getElementById('rm-output').textContent=res;
+  }catch(e){
+    document.getElementById('rm-loading').style.display='none';
+    document.getElementById('rm-output').style.display='block';
+    document.getElementById('rm-output').textContent='Could not generate roadmap. Please try again.';
+  }
+}
+
+let chartsRendered=false;
+function renderCharts(){
+  if(chartsRendered)return;
+  chartsRendered=true;
+  const opts={color:'#e2e8f0',grid:{color:'rgba(255,255,255,0.07)'}};
+  new Chart(document.getElementById('chart-hiring'),{type:'bar',data:{labels:['TCS','Infosys','Accenture','Amazon','Google','Wipro','Deloitte'],datasets:[{label:'Hires 2024–25',data:[145,110,95,52,28,88,60],backgroundColor:['#7c3aed','#06b6d4','#10b981','#f59e0b','#ef4444','#8b5cf6','#0ea5e9']}]},options:{plugins:{legend:{labels:{color:'#e2e8f0'}}},scales:{x:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,0.07)'}},y:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,0.07)'}}}}});
+  new Chart(document.getElementById('chart-pkg'),{type:'doughnut',data:{labels:['3–5 LPA','5–8 LPA','8–12 LPA','12–20 LPA','20+ LPA'],datasets:[{data:[38,28,18,10,6],backgroundColor:['#7c3aed','#06b6d4','#10b981','#f59e0b','#ef4444']}]},options:{plugins:{legend:{labels:{color:'#e2e8f0'}}}}});
+  new Chart(document.getElementById('chart-branch'),{type:'bar',data:{labels:['CSE','ISE','ECE','EEE','MECH'],datasets:[{label:'Placement %',data:[92,88,75,65,55],backgroundColor:'rgba(124,58,237,0.7)',borderColor:'#7c3aed',borderWidth:2}]},options:{indexAxis:'y',plugins:{legend:{labels:{color:'#e2e8f0'}}},scales:{x:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,0.07)'}},y:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,0.07)'}}}}});
+  new Chart(document.getElementById('chart-skills'),{type:'polarArea',data:{labels:['DSA','Python','SQL','Java','React','AWS','ML','Communication'],datasets:[{data:[90,82,75,70,65,58,55,80],backgroundColor:['rgba(124,58,237,0.7)','rgba(6,182,212,0.7)','rgba(16,185,129,0.7)','rgba(245,158,11,0.7)','rgba(239,68,68,0.7)','rgba(139,92,246,0.7)','rgba(14,165,233,0.7)','rgba(52,211,153,0.7)']}]},options:{plugins:{legend:{labels:{color:'#e2e8f0'}}},scales:{r:{ticks:{color:'#94a3b8',backdropColor:'transparent'},grid:{color:'rgba(255,255,255,0.07)'}}}}});
+}
+
+document.getElementById('chat-input').addEventListener('keydown',e=>{if(e.key==='Enter')sendChat();});
+</script>
+</body>
+</html>
